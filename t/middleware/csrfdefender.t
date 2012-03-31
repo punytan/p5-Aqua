@@ -1,6 +1,5 @@
 use sane;
 use Test::More;
-use Plack::Test;
 
 use LWP::UserAgent;
 use LWP::Protocol::PSGI;
@@ -32,7 +31,6 @@ subtest "Should not work without session middleware" => sub {
 };
 
 subtest "Basic test cases" => sub {
-
     # Prepare environments for testing
     my $app = Aqua::Middleware::ErrorDocument->wrap(
         Plack::Middleware::Session->wrap(
@@ -49,6 +47,12 @@ subtest "Basic test cases" => sub {
         my $res = $ua->get($url);
         is $res->code, 200;
         is $res->content, $token;
+
+    };
+
+    subtest "returns different token for another client" => sub {
+        my $another_token = LWP::UserAgent->new->get($url)->content;
+        isnt $another_token, $token;
     };
 
     subtest "post with valid token" => sub {
