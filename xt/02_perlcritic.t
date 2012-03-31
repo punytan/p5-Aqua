@@ -5,4 +5,4 @@ eval {
     Test::Perl::Critic->import( -profile => 'xt/perlcriticrc');
 };
 plan skip_all => "Test::Perl::Critic is not installed." if $@;
-all_critic_ok('lib');
+all_critic_ok('lib', 't');
