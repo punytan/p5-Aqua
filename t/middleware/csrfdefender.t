@@ -31,7 +31,7 @@ subtest "Should not work without session middleware" => sub {
     is $res->code, 500;
 };
 
-subtest "Basical test cases" => sub {
+subtest "Basic test cases" => sub {
 
     # Prepare environments for testing
     my $app = Aqua::Middleware::ErrorDocument->wrap(
