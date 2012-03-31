@@ -1,6 +1,5 @@
 use sane;
 use Test::More;
-use Plack::Test;
 
 use LWP::UserAgent;
 use LWP::Protocol::PSGI;
