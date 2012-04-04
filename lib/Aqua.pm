@@ -90,10 +90,8 @@ sub merge_middleware_options {
 
 }
 
-sub to_app {
+sub _app {
     my $self = shift;
-
-    $self->load_controllers;
 
     my $app = sub {
         my $env = shift;
@@ -120,7 +118,14 @@ sub to_app {
 
         return [404, [], []];
     };
+}
 
+sub to_app {
+    my $self = shift;
+
+    $self->load_controllers;
+
+    my $app = $self->_app;
     $app = $self->wrap_middlewares($app);
 
     return $app;
