@@ -3,11 +3,9 @@ use sane;
 our $VERSION = '0.01';
 
 use Carp ();
-use Router::Lazy    ();
-use List::MoreUtils ();
+use Router::Lazy ();
 
 use Plack::Util;
-
 use Aqua::Util;
 use Text::Xslate;
 
