@@ -3,11 +3,13 @@ use sane;
 use parent 'Aqua::Handler';
 
 sub index {
-    shift->write("root");
+    my ($self, $context) = @_;
+    $self->write("root");
 }
 
 sub token {
-    $_[0]->write( $_[0]->csrf_token );
+    my ($self, $context) = @_;
+    $self->write( $context->csrf_token );
 }
 
 1;

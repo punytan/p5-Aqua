@@ -22,6 +22,12 @@ sub new {
     my $charset  = $args{charset} || 'UTF-8';
     my $encoding = $charset =~ /UTF\-8/i ? 'utf8' : $charset;
 
+    my $context_class = (sub {
+        $args{context_class} ||= 'Aqua::Context';
+        Plack::Util::load_class $args{context_class};
+        return  $args{context_class};
+    }->());
+
     my $template = Text::Xslate->new(
         path      => [ Aqua::Util->catfile($BIN, "template") ],
         syntax    => 'Metakolon',
@@ -43,6 +49,7 @@ sub new {
         encoding => $encoding,
         template => $template,
         middlewares => $middlewares,
+        context  => $context_class,
     }, $class;
 }
 
@@ -93,20 +100,21 @@ sub merge_middleware_options {
 sub _app {
     my $self = shift;
 
-    my $app = sub {
+    return sub {
         my $env = shift;
 
         my $method = uc $env->{REQUEST_METHOD} eq 'HEAD'
             ? 'HEAD' : undef;
 
         if (my $ret = Router::Lazy->match($env, $method)) {
-            my ($controller, $action)
-                = ($ret->{controller}, $ret->{action});
+            my ($controller, $action) = ($ret->{controller}, $ret->{action});
+
+            my $context = $self->{context}->new(env => $env);
 
             return $controller->new(
-                env => $env,
+                context     => $context,
                 application => $self,
-            )->$action(@{$ret->{args}});
+            )->$action($context, @{$ret->{args}});
 
         }
 
@@ -140,6 +148,7 @@ sub wrap_middlewares {
         $app = Plack::Middleware::Static->wrap($app,
             %{ $mw->{Static} }
         );
+        AQUA_DEBUG && warn "Enabled Middleware: <Static>";
     }
 
     if ($mw->{SecureHeader}) {
@@ -147,11 +156,13 @@ sub wrap_middlewares {
         $app = Aqua::Middleware::SecureHeader->wrap($app,
             %{ $mw->{SecureHeader} }
         );
+        AQUA_DEBUG && warn "Enabled Middleware: <SecureHeader>";
     }
 
     if ($mw->{Head}) {
         require Plack::Middleware::Head;
         $app = Plack::Middleware::Head->wrap($app);
+        AQUA_DEBUG && warn "Enabled Middleware: <Head>";
     }
 
     if ($mw->{Session} && $mw->{CSRFDefender}) {
@@ -159,25 +170,30 @@ sub wrap_middlewares {
         $app = Aqua::Middleware::CSRFDefender->wrap($app,
             %{ $mw->{CSRFDefender} }
         );
+        AQUA_DEBUG && warn "Enabled Middleware: <CSRFDefender>";
     }
 
     if ($mw->{Session}) {
         $app = $self->wrap_session_middleware($app);
+        AQUA_DEBUG && warn "Enabled Middleware: <Session>";
     }
 
     if ($mw->{ErrorDocument}) {
         require Aqua::Middleware::ErrorDocument;
         $app = Aqua::Middleware::ErrorDocument->wrap($app);
+        AQUA_DEBUG && warn "Enabled Middleware: <ErrorDocument>";
     }
 
     if ($mw->{ContentLength}) {
         require Plack::Middleware::ContentLength;
         $app = Plack::Middleware::ContentLength->wrap($app);
+        AQUA_DEBUG && warn "Enabled Middleware: <ContentLength>";
     }
 
     if ($mw->{Runtime}) {
         require Plack::Middleware::Runtime;
         $app = Plack::Middleware::Runtime->wrap($app);
+        AQUA_DEBUG && warn "Enabled Middleware: <Runtime>";
     }
 
     return $app;
@@ -230,6 +246,7 @@ sub load_controllers {
             unless ($controller->can($action)) {
                 Carp::croak "<$controller#$action> is not callable."
             }
+            AQUA_DEBUG && warn "Loaded <$controller#$action>";
         }
 
     }

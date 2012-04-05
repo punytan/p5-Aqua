@@ -1,6 +1,7 @@
 use sane;
 use Test::More;
 use Aqua::Handler;
+use Aqua::Context;
 use t::Util::MakeApp;
 use Encode;
 
@@ -11,18 +12,13 @@ subtest "new_ok" => sub {
 subtest "can_ok" => sub {
     can_ok "Aqua::Handler", qw(
         new
-        req
-        request
-        session
         charset
         encoding
         template
-        csrf_token
         write
         write_json
         render
         throw
-        uri_for
     );
 };
 
@@ -57,21 +53,16 @@ my $env = {
 
 my $handler = Aqua::Handler->new(
     application => t::Util::MakeApp->app,
-    env => $env,
+    context => Aqua::Context->new( env => $env ),
 );
 
 isa_ok $handler, 'Aqua::Handler';
 
 subtest "accessor methods" => sub {
-    isa_ok $handler->req,      'Plack::Request';
-    isa_ok $handler->request,  'Plack::Request';
-    isa_ok $handler->session,  'Plack::Session';
     isa_ok $handler->template, 'Text::Xslate';
 
     is $handler->charset,   'UTF-8';
     is $handler->encoding,  'utf8';
-
-    is $handler->csrf_token, 'Lorem ipsum dolor sit amet';
 };
 
 subtest "write" => sub {
@@ -173,13 +164,6 @@ subtest "throw" => sub {
             [ "Content-Type" => "text/plain" ],
             [ ]
         ];
-    };
-};
-
-subtest "uri_for" => sub {
-    subtest "just uri_for" => sub {
-        my $uri = $handler->uri_for("page", user => "foo");
-        is $uri, "http://localhost/page?user=foo";
     };
 };
 

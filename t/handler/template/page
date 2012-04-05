@@ -1,5 +1,5 @@
 <!DOCTYPE html>
 <html>
 <head><title>いろはにほへと</title></head>
-<body>[% $self.csrf_token() %],[% $foo || '' %]</body>
+<body>[% $context.csrf_token() %],[% $foo || '' %]</body>
 </html>

@@ -1,17 +1,19 @@
+package t::App; ## no critic
+use parent 'Aqua';
+package main;
 use sane;
 use Test::More;
 
 use LWP::UserAgent;
 use LWP::Protocol::PSGI;
 
-use Aqua;
 use t::App::Router;
 
-isa_ok( Aqua->new(), "Aqua" );
+isa_ok( t::App->new(), "t::App" );
 
 subtest "ordinary app" => sub {
 
-    my $app = Aqua->new->to_app;
+    my $app = t::App->new->to_app;
     my $gurad = LWP::Protocol::PSGI->register($app);
 
     my $ua = LWP::UserAgent->new( cookie_jar => {} );
