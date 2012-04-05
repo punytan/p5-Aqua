@@ -4,7 +4,7 @@ use Aqua::Util;
 use Text::Xslate;
 
 sub app {
-    my $BIN = Aqua::Util->find_bin;
+    my $BIN = Aqua::Util->findbin;
     my $template = Text::Xslate->new(
         path      => [ Aqua::Util->catfile($BIN, "template") ],
         syntax    => 'Metakolon',

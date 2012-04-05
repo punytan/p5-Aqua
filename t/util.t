@@ -5,9 +5,9 @@ use Aqua::Util;
 use FindBin;
 use File::Spec;
 
-can_ok 'Aqua::Util', qw(find_bin catfile);
+can_ok 'Aqua::Util', qw(findbin catfile);
 
-is (Aqua::Util->find_bin, $FindBin::Bin);
+is (Aqua::Util->findbin, $FindBin::Bin);
 is (Aqua::Util->catfile("foo", "bar"), File::Spec->catfile("foo", "bar"));
 
 done_testing;

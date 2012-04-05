@@ -12,7 +12,7 @@ use Text::Xslate;
 use constant AQUA_DEBUG => $ENV{AQUA_DEBUG};
 use constant PLACK_ENV  => $ENV{PLACK_ENV} || 'development';
 
-our $BIN = Aqua::Util->find_bin;
+our $BIN = Aqua::Util->findbin;
 
 sub new {
     my ($class, %args) = @_;

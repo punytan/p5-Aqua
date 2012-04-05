@@ -6,7 +6,7 @@ use Aqua::Util;
 use Plack::Util;
 use HTTP::Status 'is_success';
 
-our $BIN = Aqua::Util->find_bin;
+our $BIN = Aqua::Util->findbin;
 
 sub call {
     my $self = shift;
