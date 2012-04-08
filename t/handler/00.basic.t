@@ -153,7 +153,7 @@ subtest "throw" => sub {
         is_deeply $res, [
             500,
             [ "Content-Type" => "text/plain" ],
-            [ 'Internal Server Error' ]
+            [ ]
         ];
     };
 
@@ -162,7 +162,7 @@ subtest "throw" => sub {
         is_deeply $res, [
             500,
             [ "Content-Type" => "text/plain" ],
-            [ ]
+            [ 'Internal Server Error' ]
         ];
     };
 };

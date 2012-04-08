@@ -58,7 +58,11 @@ sub render {
 
 sub throw {
     my ($self, $status, $body, $content_type) = @_;
-    $body ||= HTTP::Status::status_message($status);
+
+    if (ref $body eq 'ARRAY') {
+        $body = HTTP::Status::status_message($status);
+    }
+
     return $self->write($body, $status, [], 'text/plain');
 }
 
