@@ -71,7 +71,7 @@ sub merge_middleware_options {
 
     my $static = delete $mw->{Static} // +{
         path => qr{^/static/},
-        root => Aqua::Util->catfile($BIN, "public"),
+        root => Aqua::Util->catfile($BIN),
     };
 
     my $secure_header = delete $mw->{SecureHeader} // +{
