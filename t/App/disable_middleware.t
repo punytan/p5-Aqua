@@ -9,7 +9,12 @@ use t::App::Router;
 
 subtest "app without session" => sub {
 
-    my $app = Aqua->new( Session => 0 )->to_app;
+    my $app = Aqua->new(
+        handler_class => "t::App::Web",
+        middlewares => {
+            Session => undef,
+        },
+    )->to_app;
     my $gurad = LWP::Protocol::PSGI->register($app);
 
     my $ua = LWP::UserAgent->new( cookie_jar => {} );

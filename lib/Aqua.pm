@@ -3,7 +3,7 @@ use sane;
 our $VERSION = '0.01';
 
 use Carp ();
-use Router::Lazy ();
+use Router::Lazy;
 
 use Plack::Util;
 use Aqua::Util;
@@ -17,14 +17,18 @@ our $BIN = Aqua::Util->findbin;
 sub new {
     my ($class, %args) = @_;
 
+    my $handler_class = $args{handler_class}
+        or Carp::croak "handler_class is required";
+
     my $charset  = $args{charset} || 'UTF-8';
     my $encoding = $charset =~ /UTF\-8/i ? 'utf8' : $charset;
 
     my $context_class = (sub {
+        my %args = @_;
         $args{context_class} ||= 'Aqua::Context';
         Plack::Util::load_class $args{context_class};
         return  $args{context_class};
-    }->());
+    }->(%args));
 
     my $template = Text::Xslate->new(
         path      => [ Aqua::Util->catfile($BIN, "template") ],
@@ -42,7 +46,10 @@ sub new {
         middlewares => $args{middlewares}
     );
 
+    my $router = Router::Lazy->instance($handler_class);
+
     return bless {
+        router   => $router,
         charset  => $charset,
         encoding => $encoding,
         template => $template,
@@ -104,7 +111,7 @@ sub _app {
         my $method = uc $env->{REQUEST_METHOD} eq 'HEAD'
             ? 'HEAD' : undef;
 
-        if (my $ret = Router::Lazy->match($env, $method)) {
+        if (my $ret = $self->{router}->match($env, $method)) {
             my ($controller, $action) = ($ret->{controller}, $ret->{action});
 
             my $context = $self->{context}->new(env => $env);
@@ -117,7 +124,7 @@ sub _app {
         }
 
         for my $method ( grep { $_ ne uc $env->{REQUEST_METHOD} } qw(GET POST PUT DELETE) ) {
-            if (my $ret = Router::Lazy->match($env, $method)) {
+            if (my $ret = $self->{router}->match($env, $method)) {
                 return [405, [], []]; # 405 Method Not Allowed
             }
         }
@@ -234,8 +241,8 @@ sub wrap_session_middleware {
 sub load_controllers {
     my $self = shift;
 
-    for my $method (keys %$Router::Lazy::Rules) {
-        for my $rule (@{ $Router::Lazy::Rules->{$method} }) {
+    for my $method (keys %{ $self->{router}{rules} }) {
+        for my $rule (@{ $self->{router}{rules}{$method} }) {
             my ($controller, $action) = ($rule->{controller}, $rule->{action});
 
             local $@;
