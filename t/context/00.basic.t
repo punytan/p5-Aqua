@@ -61,7 +61,7 @@ subtest "accessor methods" => sub {
 
 subtest "uri_for" => sub {
     subtest "just uri_for" => sub {
-        my $uri = $context->uri_for("page", user => "foo");
+        my $uri = $context->uri_for("page", { user => "foo" });
         is $uri, "http://localhost/page?user=foo";
     };
 };
