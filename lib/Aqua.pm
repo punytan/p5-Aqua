@@ -116,6 +116,8 @@ sub _app {
 
             my $context = $self->{context}->new(env => $env);
 
+            AQUA_DEBUG && warn "Match: <$controller#$action>, args: <@{ [ grep { defined } @{ $ret->{args} } ] }>";
+
             return $controller->new(
                 context     => $context,
                 application => $self,
