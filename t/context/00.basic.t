@@ -16,6 +16,7 @@ subtest "can_ok" => sub {
         session
         csrf_token
         uri_for
+        stash
     );
 };
 
@@ -64,6 +65,11 @@ subtest "uri_for" => sub {
         my $uri = $context->uri_for("page", { user => "foo" });
         is $uri, "http://localhost/page?user=foo";
     };
+};
+
+subtest "stash" => sub {
+    $context->stash->{foo} = "bar";
+    is $context->stash->{foo}, "bar";
 };
 
 done_testing;

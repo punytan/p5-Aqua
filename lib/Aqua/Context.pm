@@ -7,7 +7,10 @@ use Plack::Session;
 sub new {
     my ($class, %args) = @_;
     my $request = Plack::Request->new($args{env});
-    bless { request => $request }, $class;
+    bless {
+        request => $request,
+        stash   => {},
+    }, $class;
 }
 
 sub req        { $_[0]->{request} }
@@ -22,6 +25,8 @@ sub uri_for {
     $uri->query_form(%$args) if $args;
     $uri;
 }
+
+sub stash { shift->{stash} }
 
 1;
 __END__

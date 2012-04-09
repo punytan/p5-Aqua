@@ -145,6 +145,21 @@ subtest "render" => sub {
         ];
     };
 
+    subtest "with stash" => sub {
+        $handler->{context}->stash->{foo} = "bar";
+        my $res = $handler->render("page");
+        my @body = (
+            '<!DOCTYPE html>', '<html>', '<head><title>いろはにほへと</title></head>',
+            '<body>Lorem ipsum dolor sit amet,bar</body>', '</html>', ''
+        );
+
+        is_deeply $res, [
+            200,
+            [ "Content-Type" => "text/html; charset=UTF-8" ],
+            [ Encode::encode_utf8(join "\n", @body) ]
+        ];
+    };
+
 };
 
 subtest "throw" => sub {
@@ -165,6 +180,7 @@ subtest "throw" => sub {
             [ 'Internal Server Error' ]
         ];
     };
+
 };
 
 done_testing;

@@ -48,6 +48,7 @@ sub render {
     $args ||= {};
 
     my $string = $self->template->render($template, {
+        %{ $self->{context}{stash} },
         %$args,
         self => $self,
         context => $self->{context},
