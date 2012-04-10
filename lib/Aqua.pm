@@ -116,7 +116,7 @@ sub _app {
 
             my $context = $self->{context}->new(env => $env);
 
-            AQUA_DEBUG && warn "Match: <$controller#$action>, args: <@{ [ grep { defined } @{ $ret->{args} } ] }>";
+            AQUA_DEBUG && print STDERR "Match: <$controller#$action>, args: <@{ [ grep { defined } @{ $ret->{args} } ] }>\n";
 
             return $controller->new(
                 context     => $context,
@@ -155,7 +155,7 @@ sub wrap_middlewares {
         $app = Plack::Middleware::Static->wrap($app,
             %{ $mw->{Static} }
         );
-        AQUA_DEBUG && warn "Enabled Middleware: <Static>";
+        AQUA_DEBUG && print STDERR "Enabled Middleware: <Static>\n";
     }
 
     if ($mw->{SecureHeader}) {
@@ -163,13 +163,13 @@ sub wrap_middlewares {
         $app = Aqua::Middleware::SecureHeader->wrap($app,
             %{ $mw->{SecureHeader} }
         );
-        AQUA_DEBUG && warn "Enabled Middleware: <SecureHeader>";
+        AQUA_DEBUG && print STDERR "Enabled Middleware: <SecureHeader>\n";
     }
 
     if ($mw->{Head}) {
         require Plack::Middleware::Head;
         $app = Plack::Middleware::Head->wrap($app);
-        AQUA_DEBUG && warn "Enabled Middleware: <Head>";
+        AQUA_DEBUG && print STDERR "Enabled Middleware: <Head>\n";
     }
 
     if ($mw->{Session} && $mw->{CSRFDefender}) {
@@ -177,30 +177,30 @@ sub wrap_middlewares {
         $app = Aqua::Middleware::CSRFDefender->wrap($app,
             %{ $mw->{CSRFDefender} }
         );
-        AQUA_DEBUG && warn "Enabled Middleware: <CSRFDefender>";
+        AQUA_DEBUG && print STDERR "Enabled Middleware: <CSRFDefender>\n";
     }
 
     if ($mw->{Session}) {
         $app = $self->wrap_session_middleware($app);
-        AQUA_DEBUG && warn "Enabled Middleware: <Session>";
+        AQUA_DEBUG && print STDERR "Enabled Middleware: <Session>\n";
     }
 
     if ($mw->{ErrorDocument}) {
         require Aqua::Middleware::ErrorDocument;
         $app = Aqua::Middleware::ErrorDocument->wrap($app);
-        AQUA_DEBUG && warn "Enabled Middleware: <ErrorDocument>";
+        AQUA_DEBUG && print STDERR "Enabled Middleware: <ErrorDocument>\n";
     }
 
     if ($mw->{ContentLength}) {
         require Plack::Middleware::ContentLength;
         $app = Plack::Middleware::ContentLength->wrap($app);
-        AQUA_DEBUG && warn "Enabled Middleware: <ContentLength>";
+        AQUA_DEBUG && print STDERR "Enabled Middleware: <ContentLength>\n";
     }
 
     if ($mw->{Runtime}) {
         require Plack::Middleware::Runtime;
         $app = Plack::Middleware::Runtime->wrap($app);
-        AQUA_DEBUG && warn "Enabled Middleware: <Runtime>";
+        AQUA_DEBUG && print STDERR "Enabled Middleware: <Runtime>\n";
     }
 
     return $app;
@@ -253,7 +253,9 @@ sub load_controllers {
             unless ($controller->can($action)) {
                 Carp::croak "<$controller#$action> is not callable."
             }
-            AQUA_DEBUG && warn "Loaded <$controller#$action>";
+
+            AQUA_DEBUG && print STDERR "Loaded <$controller#$action>\n";
+
         }
 
     }
