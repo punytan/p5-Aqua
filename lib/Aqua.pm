@@ -102,7 +102,7 @@ sub merge_middleware_options {
 
 }
 
-sub _app {
+sub raw_app {
     my $self = shift;
 
     return sub {
@@ -140,7 +140,7 @@ sub to_app {
 
     $self->load_controllers;
 
-    my $app = $self->_app;
+    my $app = $self->raw_app;
     $app = $self->wrap_middlewares($app);
 
     return $app;
