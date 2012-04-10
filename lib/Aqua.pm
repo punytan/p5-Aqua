@@ -247,8 +247,13 @@ sub load_controllers {
         for my $rule (@{ $self->{router}{rules}{$method} }) {
             my ($controller, $action) = ($rule->{controller}, $rule->{action});
 
-            local $@;
-            eval { Plack::Util::load_class $controller };
+            eval {
+                my $handler = $controller;
+                $handler =~ s!::!/!g;
+                require "$handler.pm"; ## no critic
+            };
+
+            Carp::croak "Can't locate <$controller> in \@INC" if $@;
 
             unless ($controller->can($action)) {
                 Carp::croak "<$controller#$action> is not callable."
