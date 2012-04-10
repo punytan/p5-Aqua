@@ -1,4 +1,4 @@
-package t::Util::MakeApp;
+package t::Util::MakeMockApp;
 use sane;
 use Aqua::Util;
 use Text::Xslate;

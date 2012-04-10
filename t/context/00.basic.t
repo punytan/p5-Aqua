@@ -1,7 +1,7 @@
 use sane;
 use Test::More;
 use Aqua::Context;
-use t::Util::MakeApp;
+use t::Util::MakeMockApp;
 use Encode;
 
 subtest "new_ok" => sub {

@@ -2,7 +2,7 @@ use sane;
 use Test::More;
 use Aqua::Handler;
 use Aqua::Context;
-use t::Util::MakeApp;
+use t::Util::MakeMockApp;
 use Encode;
 
 subtest "new_ok" => sub {
@@ -52,7 +52,7 @@ my $env = {
 };
 
 my $handler = Aqua::Handler->new(
-    application => t::Util::MakeApp->app,
+    application => t::Util::MakeMockApp->app,
     context => Aqua::Context->new( env => $env ),
 );
 
