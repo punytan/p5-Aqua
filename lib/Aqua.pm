@@ -118,10 +118,12 @@ sub raw_app {
 
             AQUA_DEBUG && print STDERR "Match: <$controller#$action>, args: <@{ [ grep { defined } @{ $ret->{args} } ] }>\n";
 
-            return $controller->new(
+            my $c = $controller->new(
                 context     => $context,
                 application => $self,
-            )->$action($context, @{$ret->{args}});
+            );
+
+            return $c->$action($context, @{$ret->{args}});
 
         }
 
