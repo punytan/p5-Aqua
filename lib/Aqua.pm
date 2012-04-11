@@ -17,8 +17,8 @@ our $BIN = Aqua::Util->findbin;
 sub new {
     my ($class, %args) = @_;
 
-    my $handler_class = $args{handler_class}
-        or Carp::croak "handler_class is required";
+    my $router = $args{router}
+        or Carp::croak "router is required";
 
     my $charset  = $args{charset} || 'UTF-8';
     my $encoding = $charset =~ /UTF\-8/i ? 'utf8' : $charset;
@@ -45,8 +45,6 @@ sub new {
     my $middlewares = __PACKAGE__->merge_middleware_options(
         middlewares => $args{middlewares}
     );
-
-    my $router = Router::Lazy->instance($handler_class);
 
     return bless {
         router   => $router,

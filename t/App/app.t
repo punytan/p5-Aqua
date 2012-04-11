@@ -10,11 +10,13 @@ use LWP::Protocol::PSGI;
 
 use t::App::Router;
 
-isa_ok( t::App->new(handler_class => "t::App::Web"), "t::App" );
+my $router = t::App::Router->register;
+
+isa_ok( t::App->new(router => $router), "t::App" );
 
 subtest "ordinary app" => sub {
 
-    my $app = t::App->new(handler_class => "t::App::Web")->to_app;
+    my $app = t::App->new(router => $router)->to_app;
     my $gurad = LWP::Protocol::PSGI->register($app);
 
     my $ua = LWP::UserAgent->new( cookie_jar => {} );

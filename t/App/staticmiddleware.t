@@ -8,9 +8,8 @@ use Aqua;
 use t::App::Router;
 
 subtest "static middleware" => sub {
-    my $app = Aqua->new(
-        handler_class => "t::App::Web",
-    )->to_app;
+    my $router = t::App::Router->register;
+    my $app = Aqua->new(router => $router)->to_app;
 
     my $gurad = LWP::Protocol::PSGI->register($app);
 

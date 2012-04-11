@@ -5,11 +5,9 @@ use Aqua;
 use t::App::Router;
 
 subtest "success" => sub {
-    my $router = Router::Lazy->instance("t::App::Web");
+    my $router = t::App::Router->register;
 
-    my $aqua = Aqua->new(
-        handler_class => "t::App::Web",
-    );
+    my $aqua = Aqua->new(router => $router);
 
     my $app = $aqua->to_app;
     is ref($app), 'CODE';
@@ -20,9 +18,7 @@ subtest "fail" => sub {
     my $router = Router::Lazy->instance("Nothing");
     $router->get("/" => "Root#index");
 
-    my $aqua = Aqua->new(
-        handler_class => "Nothing",
-    );
+    my $aqua = Aqua->new(router => $router);
 
     local $@;
     eval { $aqua->to_app };

@@ -7,10 +7,12 @@ use LWP::Protocol::PSGI;
 use Aqua;
 use t::App::Router;
 
+my $router = t::App::Router->register;
+
 subtest "app without session" => sub {
 
     my $app = Aqua->new(
-        handler_class => "t::App::Web",
+        router => $router,
         middlewares => {
             Session => undef,
         },

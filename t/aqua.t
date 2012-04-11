@@ -15,10 +15,7 @@ subtest "can_ok" => sub {
     );
 };
 
-my $aqua = Aqua->new(
-    handler_class => 'Foo'
-);
-
+my $aqua = Aqua->new(router => Router::Lazy->instance("Foo"));
 isa_ok $aqua, "Aqua";
 
 subtest "merge_middleware_options" => sub { # TODO : more pattern
