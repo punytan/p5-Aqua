@@ -250,7 +250,8 @@ sub load_controllers {
             eval { Aqua::Util->require($controller) };
 
             if ($@) {
-                Carp::croak "Can't locate <$controller> in \@INC [$@]";
+                $@ =~ s/[\r\n]/\n\t/g; # indent error message
+                Carp::croak "Can't locate <$controller> in \@INC:\n\t$@";
             }
 
             unless ($controller->can($action)) {
