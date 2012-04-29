@@ -26,7 +26,7 @@ sub new {
     my $context_class = (sub {
         my %args = @_;
         $args{context_class} ||= 'Aqua::Context';
-        Plack::Util::load_class $args{context_class};
+        Aqua::Util->require($args{context_class});
         return  $args{context_class};
     }->(%args));
 
@@ -247,24 +247,19 @@ sub load_controllers {
         for my $rule (@{ $self->{router}{rules}{$method} }) {
             my ($controller, $action) = ($rule->{controller}, $rule->{action});
 
-            eval {
-                my $handler = $controller;
-                $handler =~ s!::!/!g;
-                require "$handler.pm"; ## no critic
-            };
+            eval { Aqua::Util->require($controller) };
 
-            Carp::croak "Can't locate <$controller> in \@INC" if $@;
+            if ($@) {
+                Carp::croak "Can't locate <$controller> in \@INC [$@]";
+            }
 
             unless ($controller->can($action)) {
                 Carp::croak "<$controller#$action> is not callable."
             }
 
             AQUA_DEBUG && print STDERR "Loaded <$controller#$action>\n";
-
         }
-
     }
-
 }
 
 1;
