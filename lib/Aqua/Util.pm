@@ -9,8 +9,9 @@ sub catfile { shift; File::Spec->catfile(@_) }
 sub require {
     my (undef, $class, $method) = @_;
     unless ($class->can($method || "new")) {
-        $class =~ s|::|/|g;
-        require "$class.pm"; ## no critic
+        my $path = $class;
+        $path =~ s|::|/|g;
+        require "$path.pm"; ## no critic
     }
 }
 
