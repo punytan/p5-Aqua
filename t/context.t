@@ -1,8 +1,6 @@
 use sane;
 use Test::More;
 use Aqua::Context;
-use t::Util::MakeMockApp;
-use Encode;
 
 subtest "new_ok" => sub {
     new_ok "Aqua::Context", [ env => {} ];
@@ -20,10 +18,8 @@ subtest "can_ok" => sub {
     );
 };
 
-my $env = {
-    'psgix.session' => {
-        csrf_token => 'Lorem ipsum dolor sit amet'
-    },
+my $context = Aqua::Context->new(env => {
+    'psgix.session' => { csrf_token => 'Lorem ipsum dolor sit amet' },
     'SCRIPT_NAME' => '',
     'SERVER_NAME' => 0,
     'HTTP_ACCEPT_ENCODING' => 'gzip, deflate',
@@ -47,11 +43,7 @@ my $env = {
     'psgi.url_scheme' => 'http',
     'psgi.run_once' => '',
     'HTTP_HOST' => 'localhost:80',
-};
-
-my $context = Aqua::Context->new( env => $env );
-
-isa_ok $context, 'Aqua::Context';
+});
 
 subtest "accessor methods" => sub {
     isa_ok $context->req,      'Plack::Request';
