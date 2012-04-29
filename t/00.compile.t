@@ -3,6 +3,7 @@ use Test::More;
 
 BEGIN {
     use_ok 'Aqua';
+    use_ok 'Aqua::Context';
     use_ok 'Aqua::Handler';
     use_ok 'Aqua::Util';
 
