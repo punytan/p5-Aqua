@@ -4,10 +4,9 @@ our $VERSION = '0.01';
 
 use Carp ();
 use Router::Lazy;
-
-use Plack::Util;
 use Aqua::Util;
 use Text::Xslate;
+use Try::Tiny;
 
 use constant AQUA_DEBUG => $ENV{AQUA_DEBUG};
 use constant PLACK_ENV  => $ENV{PLACK_ENV} || 'development';
@@ -18,7 +17,7 @@ sub new {
     my ($class, %args) = @_;
 
     my $router = $args{router}
-        or Carp::croak "router is required";
+        or Carp::croak "router is required argument";
 
     my $charset  = $args{charset} || 'UTF-8';
     my $encoding = $charset =~ /UTF\-8/i ? 'utf8' : $charset;
@@ -27,7 +26,7 @@ sub new {
         my %args = @_;
         $args{context_class} ||= 'Aqua::Context';
         Aqua::Util->require($args{context_class});
-        return  $args{context_class};
+        return $args{context_class};
     }->(%args));
 
     my $template = Text::Xslate->new(
@@ -42,62 +41,13 @@ sub new {
         %{ $args{template} || {} },
     );
 
-    my $middlewares = __PACKAGE__->merge_middleware_options(
-        middlewares => $args{middlewares}
-    );
-
     return bless {
         router   => $router,
         charset  => $charset,
         encoding => $encoding,
         template => $template,
-        middlewares => $middlewares,
         context  => $context_class,
     }, $class;
-}
-
-sub merge_middleware_options {
-    my ($class, %args) = @_;
-
-    my $mw = delete $args{middlewares} || +{};
-
-    my $head    = $mw->{Head}    // 1;
-    my $runtime = $mw->{Runtime} // 1;
-
-    my $content_length = $mw->{ContentLength} // 1;
-    my $errordocument  = $mw->{ErrorDocument} // 1;
-
-    my $static = delete $mw->{Static} // +{
-        path => qr{^/static/},
-        root => Aqua::Util->catfile($BIN),
-    };
-
-    my $secure_header = delete $mw->{SecureHeader} // +{
-        'X-Frame-Options'  => "DENY",
-        'X-XSS-Protection' => "1; mode=block",
-        'X-Content-Type-Options' => "nosniff",
-    };
-
-    my $csrf_defender = delete $mw->{CSRFDefender} // +{};
-
-    my $session = delete $mw->{Session} // +{};
-    my $session_store = delete $session->{Store} // { DBI => { } };
-    my $session_state = delete $session->{State} // { httponly => 1 };
-
-    return +{
-        Head     => $head,
-        Runtime  => $runtime,
-        Static   => $static,
-        Session  => {
-            Store => $session_store,
-            State => $session_state,
-        },
-        ContentLength => $content_length,
-        ErrorDocument => $errordocument,
-        SecureHeader  => $secure_header,
-        CSRFDefender  => $csrf_defender,
-    };
-
 }
 
 sub raw_app {
@@ -137,106 +87,125 @@ sub raw_app {
 
 sub to_app {
     my $self = shift;
-
     $self->load_controllers;
-
-    my $app = $self->raw_app;
-    $app = $self->wrap_middlewares($app);
-
-    return $app;
+    $self->wrap_default_middlewares($self->raw_app, {});
 }
 
-sub wrap_middlewares {
-    my ($self, $app) = @_;
-    my $mw = $self->{middlewares};
+sub merge_middleware_options {
+    my ($class, %mw) = @_;
+
+    my $defaults = {
+        Head     => {},
+        Runtime  => {},
+        ContentLength => {},
+        ErrorDocument => {},
+        CSRFDefender  => {},
+        Static => {
+            path => qr{^/static/},
+            root => Aqua::Util->catfile($BIN),
+        },
+        SecureHeader => {
+            'X-Frame-Options'  => "DENY",
+            'X-XSS-Protection' => "1; mode=block",
+            'X-Content-Type-Options' => "nosniff",
+        },
+        Session => {
+            Store => { DBI => { } },
+            State => { httponly => 1 },
+        },
+    };
+
+    return +{ %$defaults, %mw };
+}
+
+sub _wrap {
+    my ($self, $class, $app, $args) = @_;
+
+    my $pkg = $class =~ /^\+(.+)/
+        ? $1 : "Plack::Middleware::$class";
+
+    return try {
+        Aqua::Util->require($pkg, "wrap");
+        AQUA_DEBUG && print STDERR "Enable Middleware <$pkg>\n";
+        $app = $pkg->wrap($app, %{ $args || +{} });
+    } catch {
+        Carp::croak shift;
+    };
+}
+
+sub wrap_default_middlewares {
+    my ($class, $app, $options) = @_;
+
+    my $mw = __PACKAGE__->merge_middleware_options(%$options);
 
     if ($mw->{Static}) {
-        require Plack::Middleware::Static;
-        $app = Plack::Middleware::Static->wrap($app,
-            %{ $mw->{Static} }
-        );
-        AQUA_DEBUG && print STDERR "Enabled Middleware: <Static>\n";
+        $app = __PACKAGE__->_wrap("Static", $app, $mw->{Static});
     }
 
     if ($mw->{SecureHeader}) {
-        require Aqua::Middleware::SecureHeader;
-        $app = Aqua::Middleware::SecureHeader->wrap($app,
-            %{ $mw->{SecureHeader} }
-        );
-        AQUA_DEBUG && print STDERR "Enabled Middleware: <SecureHeader>\n";
+        $app = __PACKAGE__->_wrap("+Aqua::Middleware::SecureHeader", $app, $mw->{SecureHeader});
     }
 
     if ($mw->{Head}) {
-        require Plack::Middleware::Head;
-        $app = Plack::Middleware::Head->wrap($app);
-        AQUA_DEBUG && print STDERR "Enabled Middleware: <Head>\n";
+        $app = __PACKAGE__->_wrap("Head", $app, $mw->{Head});
     }
 
     if ($mw->{Session} && $mw->{CSRFDefender}) {
-        require Aqua::Middleware::CSRFDefender;
-        $app = Aqua::Middleware::CSRFDefender->wrap($app,
-            %{ $mw->{CSRFDefender} }
-        );
-        AQUA_DEBUG && print STDERR "Enabled Middleware: <CSRFDefender>\n";
+        $app = __PACKAGE__->_wrap("+Aqua::Middleware::CSRFDefender", $app, $mw->{CSRFDefender});
     }
 
     if ($mw->{Session}) {
-        $app = $self->wrap_session_middleware($app);
-        AQUA_DEBUG && print STDERR "Enabled Middleware: <Session>\n";
+        $app = __PACKAGE__->wrap_session_middleware($app, $mw->{Session});
     }
 
     if ($mw->{ErrorDocument}) {
-        require Aqua::Middleware::ErrorDocument;
-        $app = Aqua::Middleware::ErrorDocument->wrap($app);
-        AQUA_DEBUG && print STDERR "Enabled Middleware: <ErrorDocument>\n";
+        $app = __PACKAGE__->_wrap("+Aqua::Middleware::ErrorDocument", $app, $mw->{ErrorDocument});
     }
 
     if ($mw->{ContentLength}) {
-        require Plack::Middleware::ContentLength;
-        $app = Plack::Middleware::ContentLength->wrap($app);
-        AQUA_DEBUG && print STDERR "Enabled Middleware: <ContentLength>\n";
+        $app = __PACKAGE__->_wrap("ContentLength", $app, $mw->{ContentLength});
     }
 
     if ($mw->{Runtime}) {
-        require Plack::Middleware::Runtime;
-        $app = Plack::Middleware::Runtime->wrap($app);
-        AQUA_DEBUG && print STDERR "Enabled Middleware: <Runtime>\n";
+        $app = __PACKAGE__->_wrap("Runtime", $app, $mw->{Runtime});
     }
 
     return $app;
 }
 
 sub wrap_session_middleware {
-    my ($self, $app) = @_;
+    my ($class, $app, $options) = @_;
 
-    my $session    = $self->{middlewares}{Session};
-    my ($storarge) = keys %{ $session->{Store} };
-    my $handler    = "Plack::Session::Store::$storarge";
+    my $store = do {
+        my ($storage) = %{ $options->{Store} };
+        my $handler = "Plack::Session::Store::$storage";
+        my $store_options = $options->{Store}{$storage} || {};
 
-    my $state_options = $session->{State} || +{};
-    my $store_options = $storarge ne 'Null'
-        ? $session->{Store}{$storarge} : +{} ;
+        if (exists $store_options->{dbh}) {
+            $store_options->{get_dbh} = sub { $store_options->{dbh} };
 
-    if (exists $store_options->{dbh}) {
-        $store_options->{get_dbh}
-            = sub { $store_options->{dbh} };
+        } elsif (not exists $options->{get_dbh}) {
+            require DBI;
+            my $dbh = DBI->connect("dbi:SQLite::memory:", "", "", { RaiseError => 1 });
+            $dbh->do( 'CREATE TABLE sessions(id CHAR(72) PRIMARY KEY, session_data TEXT)');
+            $store_options->{get_dbh} = sub { $dbh };
+        }
 
-    } elsif (not exists $store_options->{get_dbh}) {
-        require DBI;
+        Aqua::Util->require($handler);
+        $handler->new(%$store_options);
+    };
 
-        my $dbh = DBI->connect("dbi:SQLite::memory:","","", {RaiseError => 1});
-        $dbh->do('CREATE TABLE sessions (id CHAR(72) PRIMARY KEY, session_data TEXT)');
+    my $state = do {
+        require Plack::Session::State::Cookie;
+        Plack::Session::State::Cookie->new(%{ $options->{State} })
+    };
 
-        $store_options->{get_dbh} = sub { $dbh };
-    }
+    AQUA_DEBUG && print STDERR "Enable Middleware <Session>\n";
 
-    Plack::Util::load_class $handler;
-    require Plack::Session::State::Cookie;
     require Plack::Middleware::Session;
-
     return Plack::Middleware::Session->wrap($app,
-        store => $handler->new(%$store_options),
-        state => Plack::Session::State::Cookie->new(%$state_options),
+        store => $store,
+        state => $state,
     );
 }
 
@@ -247,12 +216,12 @@ sub load_controllers {
         for my $rule (@{ $self->{router}{rules}{$method} }) {
             my ($controller, $action) = ($rule->{controller}, $rule->{action});
 
-            eval { Aqua::Util->require($controller) };
-
-            if ($@) {
-                $@ =~ s/[\r\n]/\n\t/g; # indent error message
-                Carp::croak "Can't locate <$controller> in \@INC:\n\t$@";
-            }
+            try { Aqua::Util->require($controller) }
+            catch {
+                my $e = shift;
+                $e =~ s/[\r\n]/\n\t/g; # indent error message
+                Carp::croak "Can't locate <$controller> in \@INC:\n\t$e";
+            };
 
             unless ($controller->can($action)) {
                 Carp::croak "<$controller#$action> is not callable."
@@ -273,6 +242,25 @@ Aqua -
 =head1 SYNOPSIS
 
   use Aqua;
+
+  my $aqua = Aqua->new(router => $router);
+  $aqua->load_controllers;
+
+  my $app = $aqua->raw_app;
+
+  # wrap app by inner middleware
+  use MyApp::Middleware::Foo;
+  $app = MyApp::Middleware::Foo->wrap($app);
+
+  # wrap app by default middleware
+  $app = Aqua->wrap_default_middlewares($app, {});
+
+  # build my app
+  use Plack::Builder;
+  builder {
+    enable "LogDispatch", logger => $logger;
+    $app;
+  };
 
 =head1 DESCRIPTION
 

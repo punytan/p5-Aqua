@@ -11,12 +11,11 @@ my $router = t::App::Router->register;
 
 subtest "app without session" => sub {
 
-    my $app = Aqua->new(
-        router => $router,
-        middlewares => {
-            Session => undef,
-        },
-    )->to_app;
+    my $aqua = Aqua->new(router => $router);
+    $aqua->load_controllers;
+
+    my $app = $aqua->wrap_default_middlewares($aqua->raw_app, { Session => undef });
+
     my $gurad = LWP::Protocol::PSGI->register($app);
 
     my $ua = LWP::UserAgent->new( cookie_jar => {} );
@@ -35,8 +34,8 @@ subtest "app without session" => sub {
 
     subtest "POST /" => sub {
         my $res = $ua->post("http://localhost/");
-        is $res->code, 403;
-        is $res->content, 'Forbidden';
+        is $res->code, 405;
+        is $res->content, 'Method Not Allowed';
     };
 
     subtest "GET /login" => sub {

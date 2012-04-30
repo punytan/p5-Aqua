@@ -7,10 +7,12 @@ use Aqua::Util;
 subtest "can_ok" => sub {
     can_ok 'Aqua', qw(
         new
-        merge_middleware_options
         raw_app
         to_app
-        wrap_middlewares
+        merge_middleware_options
+        _wrap
+        wrap_default_middlewares
+        wrap_session_middleware
         load_controllers
     );
 };
@@ -21,8 +23,8 @@ isa_ok $aqua, "Aqua";
 subtest "merge_middleware_options" => sub { # TODO : more pattern
     my $mw = Aqua->merge_middleware_options();
     is_deeply $mw, +{
-        Head     => 1,
-        Runtime  => 1,
+        Head     => {},
+        Runtime  => {},
         Static   => {
             path => qr{^/static/},
             root => Aqua::Util->catfile(Aqua::Util->findbin),
@@ -31,8 +33,8 @@ subtest "merge_middleware_options" => sub { # TODO : more pattern
             Store => { DBI => {} },
             State => { httponly => 1 },
         },
-        ContentLength => 1,
-        ErrorDocument => 1,
+        ContentLength => {},
+        ErrorDocument => {},
         SecureHeader  => {
             'X-Frame-Options'  => "DENY",
             'X-XSS-Protection' => "1; mode=block",
@@ -53,14 +55,14 @@ subtest "to_app" => sub { # TODO : more pattern
     is ref($app), 'CODE';
 };
 
-subtest "wrap_middlewares" => sub { # TODO : more pattern
+subtest "wrap_default_middlewares" => sub { # TODO : more pattern
     my $app = $aqua->raw_app;
-    is ref( $aqua->wrap_middlewares($app) ), 'CODE';
+    is ref( $aqua->wrap_default_middlewares($app) ), 'CODE';
 };
 
 subtest "wrap_session_middleware" => sub { # TODO : more pattern
     my $app = $aqua->raw_app;
-    is ref( $aqua->wrap_session_middleware($app) ), 'CODE';
+    is ref( $aqua->wrap_session_middleware($app, { Store => { DBI => {} }, State => {}}) ), 'CODE';
 };
 
 done_testing;
