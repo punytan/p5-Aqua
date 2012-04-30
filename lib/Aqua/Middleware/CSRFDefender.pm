@@ -11,7 +11,7 @@ sub call {
     my ($self, $env) = @_;
 
     if (not defined $env->{'psgix.session'}) {
-        Carp::croak "Fatal: enable session middlware";
+        Carp::croak "Fatal: enable session middlware before CSRFDefender";
     }
 
     my $request = Plack::Request->new($env);
