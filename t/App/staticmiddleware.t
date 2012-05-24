@@ -4,12 +4,12 @@ use Test::More;
 use LWP::UserAgent;
 use LWP::Protocol::PSGI;
 
-use Aqua;
+use Aqua::Application;
 use t::App::Router;
 
 subtest "static middleware" => sub {
     my $router = t::App::Router->register;
-    my $app = Aqua->new(router => $router)->to_app;
+    my $app = Aqua::Application->new(router => $router)->to_app;
 
     my $gurad = LWP::Protocol::PSGI->register($app);
 

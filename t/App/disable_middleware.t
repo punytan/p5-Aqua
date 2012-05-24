@@ -4,14 +4,14 @@ use Test::More;
 use LWP::UserAgent;
 use LWP::Protocol::PSGI;
 
-use Aqua;
+use Aqua::Application;
 use t::App::Router;
 
 my $router = t::App::Router->register;
 
 subtest "app without session" => sub {
 
-    my $aqua = Aqua->new(router => $router);
+    my $aqua = Aqua::Application->new(router => $router);
     $aqua->load_controllers;
 
     my $app = $aqua->wrap_default_middlewares($aqua->raw_app, { Session => undef });

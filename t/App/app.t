@@ -1,5 +1,5 @@
 package t::App; ## no critic
-use parent 'Aqua';
+use parent 'Aqua::Application';
 
 package main;
 use sane;
