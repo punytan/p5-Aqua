@@ -4,6 +4,8 @@ use sane;
 use Plack::Response;
 use Plack::Util;
 
+use URI;
+use Carp ();
 use Encode   ();
 use JSON::XS ();
 use HTTP::Status;
@@ -65,6 +67,26 @@ sub throw {
     }
 
     return $self->write($body, $status, [], 'text/plain');
+}
+
+sub redirect {
+    my ($self, %args) = @_;
+    my $body = $args{body};
+    my $status = $args{status} || 302;
+
+    my $location;
+    if ($args{location}) {
+        $location = URI->new($args{location});
+
+    } elsif ($args{uri_for}) {
+        my $context = $self->{context};
+        $location = $context->uri_for( %{$args{uri_for}} );
+
+    } else {
+        Carp::croak "redirect method requires `location` or `uri_for` parameter";
+    }
+
+    $self->write($body, $status, [Location => $location]);
 }
 
 1;

@@ -19,6 +19,7 @@ subtest "can_ok" => sub {
         write_json
         render
         throw
+        redirect
     );
 };
 
@@ -183,6 +184,41 @@ subtest "throw" => sub {
         ];
     };
 
+};
+
+subtest redirect => sub {
+    subtest location => sub {
+        my $res = $handler->redirect(location => 'http://google.com');
+        is_deeply $res, [
+            302,
+            [
+                "Location" => "http://google.com",
+                "Content-Type" => "text/html; charset=UTF-8" ],
+            []
+        ];
+    };
+
+    subtest uri_for => sub {
+        my $res = $handler->redirect(
+            uri_for => {
+                'foo' => { query => 'string' }
+            }
+        );
+        is_deeply $res, [
+            302,
+            [
+                "Location" => "http://localhost/foo?query=string",
+                "Content-Type" => "text/html; charset=UTF-8",
+            ],
+            []
+        ];
+    };
+
+    subtest exception => sub {
+        local $@;
+        eval { $handler->redirect };
+        like $@, qr/redirect method requires/;
+    };
 };
 
 done_testing;
