@@ -1,11 +1,13 @@
 use sane;
 use Test::More;
+
 use Router::Lazy;
 use Aqua::Application;
-use t::App::Router;
 
 subtest "success" => sub {
-    my $router = t::App::Router->register;
+    my $router = Router::Lazy->instance("t::aqua::application::load_controllers");
+    $router->get("/login" => "web#index");
+    $router->post("/login" => "web#login");
 
     my $aqua = Aqua::Application->new(router => $router);
 
@@ -23,13 +25,14 @@ subtest "fail" => sub {
     local $@;
     eval { $aqua->to_app };
 
-    if ($@) {
+    if (my $e = $@) {
         my $err = quotemeta q|Can't locate <Nothing::Root>|;
-        like $@, qr/$err/, 'handler class did not found';
+        like $e, qr/$err/, 'handler class did not found';
     } else {
-        fail "woops, $@";
+        fail "oops, $e";
     }
 
 };
 
 done_testing;
+

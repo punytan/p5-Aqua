@@ -24,15 +24,13 @@ subtest "static middleware" => sub {
     subtest "get javascript from static path" => sub {
         my $res = $ua->get("http://localhost/static/js/my.js");
         is $res->code, 200;
-        is $res->headers->header("content_type"),
-            'application/javascript';
+        is $res->headers->header("content_type"), 'application/javascript';
     };
 
     subtest "get css from static path" => sub {
         my $res = $ua->get("http://localhost/static/css/my.css");
         is $res->code, 200;
-        is $res->headers->header("content_type"),
-            'text/css; charset=utf-8';
+        is $res->headers->header("content_type"), 'text/css; charset=utf-8';
     };
 
     subtest "don't allow directory traversal" => sub {
@@ -41,7 +39,7 @@ subtest "static middleware" => sub {
         is $res->content, "forbidden";
     };
 
-    subtest "don't allow directory traversal - encoding pattern" => sub {
+    subtest "don't allow directory traversal - encoded pattern" => sub {
         my $res = $ua->get("http://localhost/static/%2e%2e%2fapp.psgi");
         is $res->code, 403;
         is $res->content, "forbidden";

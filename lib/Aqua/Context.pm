@@ -13,7 +13,6 @@ sub new {
     }, $class;
 }
 
-sub req        { $_[0]->{request} }
 sub request    { $_[0]->{request} }
 sub session    { Plack::Session->new($_[0]->{request}->env) }
 sub csrf_token { $_[0]->session->get("csrf_token") }

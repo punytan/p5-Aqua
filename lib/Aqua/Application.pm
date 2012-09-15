@@ -6,7 +6,6 @@ use Carp ();
 use Router::Lazy;
 use Aqua::Util;
 use Text::Xslate;
-use Try::Tiny;
 
 use constant AQUA_DEBUG => $ENV{AQUA_DEBUG};
 use constant PLACK_ENV  => $ENV{PLACK_ENV} || 'development';
@@ -55,33 +54,42 @@ sub raw_app {
 
     return sub {
         my $env = shift;
+        my $method = uc $env->{REQUEST_METHOD} eq 'HEAD' ? 'HEAD' : undef;
+        my $ret = $self->{router}->match($env, $method);
 
-        my $method = uc $env->{REQUEST_METHOD} eq 'HEAD'
-            ? 'HEAD' : undef;
-
-        if (my $ret = $self->{router}->match($env, $method)) {
-            my ($controller, $action) = ($ret->{controller}, $ret->{action});
-
-            my $context = $self->{context}->new(env => $env);
-
-            AQUA_DEBUG && print STDERR "Match: <$controller#$action>, args: <@{ [ grep { defined } @{ $ret->{args} } ] }>\n";
-
-            my $c = $controller->new(
-                context     => $context,
-                application => $self,
-            );
-
-            return $c->$action($context, @{$ret->{args}});
-
+        unless ($ret) {
+            for my $method ( grep { $_ ne uc $env->{REQUEST_METHOD} } qw(GET POST PUT DELETE) ) {
+                if (my $ret = $self->{router}->match($env, $method)) {
+                    return [405, [], []]; # 405 Method Not Allowed
+                }
+            }
+            return [404, [], []];
         }
 
-        for my $method ( grep { $_ ne uc $env->{REQUEST_METHOD} } qw(GET POST PUT DELETE) ) {
-            if (my $ret = $self->{router}->match($env, $method)) {
-                return [405, [], []]; # 405 Method Not Allowed
+        my ($controller, $action, @args) = ($ret->{controller}, $ret->{action}, @{ $ret->{args} || [] });
+        my $context = $self->{context}->new(env => $env);
+
+        AQUA_DEBUG && printf STDERR "Match: <%s#%s>, args: <%s>\n",
+            $controller, $action, join ", ", (grep { defined } @args);
+
+        my $c = $controller->new(
+            context     => $context,
+            application => $self,
+        );
+
+        local $@;
+        if (my $response = eval { $c->$action($context, @args) }) {
+            return $response;
+        } else {
+            my $e = $@;
+            if (ref $e && $e->isa('Aqua::Exception')) {
+                my $res = $context->request->new_response($e->code, $e->header, $e->body);
+                return $res->finalize;
+            } else {
+                Carp::croak $e;
             }
         }
 
-        return [404, [], []];
     };
 }
 
@@ -119,18 +127,20 @@ sub merge_middleware_options {
 }
 
 sub _wrap {
-    my ($self, $class, $app, $args) = @_;
+    my ($self, $class, $orig_app, $args) = @_;
+    my $pkg = $class =~ /^\+(.+)/ ? $1 : "Plack::Middleware::$class";
 
-    my $pkg = $class =~ /^\+(.+)/
-        ? $1 : "Plack::Middleware::$class";
-
-    return try {
+    local $@;
+    my $app = eval {
         Aqua::Util->require($pkg, "wrap");
         AQUA_DEBUG && print STDERR "Enable Middleware <$pkg>\n";
-        $app = $pkg->wrap($app, %{ $args || +{} });
-    } catch {
-        Carp::croak shift;
+        $pkg->wrap($orig_app, %{ $args || +{} });
     };
+    if (my $e = $@) {
+        Carp::croak $e;
+    };
+
+    return $app;
 }
 
 sub wrap_default_middlewares {
@@ -203,7 +213,7 @@ sub wrap_session_middleware {
     AQUA_DEBUG && print STDERR "Enable Middleware <Session>\n";
 
     require Plack::Middleware::Session;
-    return Plack::Middleware::Session->wrap($app,
+    return  Plack::Middleware::Session->wrap($app,
         store => $store,
         state => $state,
     );
@@ -216,12 +226,11 @@ sub load_controllers {
         for my $rule (@{ $self->{router}{rules}{$method} }) {
             my ($controller, $action) = ($rule->{controller}, $rule->{action});
 
-            try { Aqua::Util->require($controller) }
-            catch {
-                my $e = shift;
+            eval { Aqua::Util->require($controller) };
+            if (my $e = $@) {
                 $e =~ s/[\r\n]/\n\t/g; # indent error message
                 Carp::croak "Can't locate <$controller> in \@INC:\n\t$e";
-            };
+            }
 
             unless ($controller->can($action)) {
                 Carp::croak "<$controller#$action> is not callable."

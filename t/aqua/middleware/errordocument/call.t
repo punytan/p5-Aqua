@@ -9,7 +9,6 @@ use FindBin;
 
 my $url = "http://localhost/";
 
-
 subtest "has content" => sub {
     my $app = Aqua::Middleware::ErrorDocument->wrap(
         sub { [200, ["Content-Type" => "text/plain"], ["OK"]] }
@@ -49,3 +48,4 @@ subtest "has static errordoc" => sub {
 };
 
 done_testing;
+

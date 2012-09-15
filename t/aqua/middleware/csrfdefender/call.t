@@ -9,7 +9,6 @@ use Plack::Session;
 use Plack::Middleware::Session;
 
 use Aqua::Middleware::CSRFDefender;
-use Aqua::Middleware::ErrorDocument;
 
 my $raw_app = sub {
     my $env = shift;
@@ -22,6 +21,8 @@ my $raw_app = sub {
 
 my $url = "http://localhost/";
 
+my $error_message = 'oops';
+
 subtest "Should not work without session middleware" => sub {
     my $app = Aqua::Middleware::CSRFDefender->wrap($raw_app);
     my $guard = LWP::Protocol::PSGI->register($app);
@@ -32,10 +33,8 @@ subtest "Should not work without session middleware" => sub {
 
 subtest "Basic test cases" => sub {
     # Prepare environments for testing
-    my $app = Aqua::Middleware::ErrorDocument->wrap(
-        Plack::Middleware::Session->wrap(
-            Aqua::Middleware::CSRFDefender->wrap($raw_app)
-        )
+    my $app = Plack::Middleware::Session->wrap(
+        Aqua::Middleware::CSRFDefender->wrap($raw_app, error_message => $error_message)
     );
 
     my $guard = LWP::Protocol::PSGI->register($app);
@@ -47,7 +46,6 @@ subtest "Basic test cases" => sub {
         my $res = $ua->get($url);
         is $res->code, 200;
         is $res->content, $token;
-
     };
 
     subtest "returns different token for another client" => sub {
@@ -64,16 +62,17 @@ subtest "Basic test cases" => sub {
     subtest "post with invalid token" => sub {
         my $res = $ua->post($url, [csrf_token => 'invalid token']);
         is $res->code, 403;
-        is $res->content, 'Forbidden';
+        is $res->content, $error_message;
     };
 
     subtest "post without token" => sub {
         my $res = LWP::UserAgent->new->post($url);
         is $res->code, 403;
-        is $res->content, 'Forbidden';
+        is $res->content, $error_message;
     };
 
 };
 
 done_testing;
+
 

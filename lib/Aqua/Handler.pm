@@ -1,5 +1,6 @@
 package Aqua::Handler;
 use sane;
+use Aqua::Exception;
 
 use Plack::Response;
 use Plack::Util;
@@ -23,23 +24,23 @@ sub encoding { $_[0]->{application}{encoding} }
 sub template { $_[0]->{application}{template} }
 
 sub write {
-    my ($self, $body, $status, $header, $content_type) = @_;
-    $status ||= 200;
+    my ($self, $body, $code, $header, $content_type) = @_;
+    $code   ||= 200;
     $header ||= [];
     $content_type ||= "text/html; charset=" . $self->charset;
 
     Plack::Util::header_set($header, "Content-Type", $content_type);
 
-    return Plack::Response->new($status, $header, $body)->finalize;
+    $self->throw($code, $body, $header);
 }
 
 sub write_json {
-    my ($self, $value, $status, $header) = @_;
+    my ($self, $value, $code, $header) = @_;
     state $json = JSON::XS->new->ascii;
 
     return $self->write(
         $json->encode($value),
-        $status,
+        $code,
         $header,
         "application/json; charset=" . $self->charset,
     );
@@ -60,19 +61,15 @@ sub render {
 }
 
 sub throw {
-    my ($self, $status, $body, $content_type) = @_;
-
-    if (ref $body eq 'ARRAY') {
-        $body = HTTP::Status::status_message($status);
-    }
-
-    return $self->write($body, $status, [], 'text/plain');
+    my ($self, $code, $body, $header) = @_;
+    Aqua::Exception->throw($code, $body, $header);
 }
 
 sub redirect {
     my ($self, %args) = @_;
     my $body = $args{body};
-    my $status = $args{status} || 302;
+    my $code = $args{code} || 302;
+    my $header = [];
 
     my $location;
     if ($args{location}) {
@@ -86,7 +83,9 @@ sub redirect {
         Carp::croak "redirect method requires `location` or `uri_for` parameter";
     }
 
-    $self->write($body, $status, [Location => $location]);
+    Plack::Util::header_set($header, Location => $location);
+
+    Aqua::Exception->throw($code, $body, $header);
 }
 
 1;
