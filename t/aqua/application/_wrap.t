@@ -1,4 +1,4 @@
-package t::aqua::applicaation::_wrap::web;
+package t::aqua::applicaation::_wrap::web; ## no critic
 use sane;
 use parent 'Aqua::Handler';
 
