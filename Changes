@@ -1,5 +1,8 @@
 Revision history for Perl extension Aqua
 
+0.04    Sun Oct 21 19:24:23 2012
+        - refactor tests
+
 0.03    Sun Jun 10 04:00:30 2012
         - add Aqua::Handler->redirect()
         - remove the first multiple slashes in Aqua::Context->uri_for()
