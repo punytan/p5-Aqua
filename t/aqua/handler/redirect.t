@@ -21,6 +21,13 @@ subtest location => sub {
 };
 
 subtest uri_for => sub {
+    eval { $handler->redirect( uri_for => 'foo' ) };
+    my $e = $@;
+    my $res = Plack::Response->new($e->code, $e->header, $e->body);
+    is_deeply $res->finalize, [ 302, [ Location => "http://localhost/foo" ], [] ];
+};
+
+subtest uri_for => sub {
     eval { $handler->redirect( uri_for => { foo => { query => 'string' } } ) };
     my $e = $@;
     my $res = Plack::Response->new($e->code, $e->header, $e->body);

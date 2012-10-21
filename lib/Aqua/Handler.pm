@@ -67,8 +67,8 @@ sub throw {
 
 sub redirect {
     my ($self, %args) = @_;
-    my $body = $args{body};
-    my $code = $args{code} || 302;
+    my $body = $args{body} // '';
+    my $code = $args{code} // 302;
     my $header = [];
 
     my $location;
@@ -77,7 +77,12 @@ sub redirect {
 
     } elsif ($args{uri_for}) {
         my $context = $self->{context};
-        $location = $context->uri_for( %{$args{uri_for}} );
+
+        my ($path, $query) = (ref $args{uri_for} eq 'HASH')
+            ? %{ $args{uri_for} }
+            : $args{uri_for};
+
+        $location = $context->uri_for($path, $query);
 
     } else {
         Carp::croak "redirect method requires `location` or `uri_for` parameter";
