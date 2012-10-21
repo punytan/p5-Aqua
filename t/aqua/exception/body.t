@@ -12,5 +12,11 @@ subtest specific => sub {
     is_deeply $e->body, ["OK"];
 };
 
+subtest filehandle => sub {
+    open my $fh, '<', __FILE__;
+    my $e = Aqua::Exception->new(200, $fh);
+    is_deeply $e->body, $fh;
+};
+
 done_testing;
 
