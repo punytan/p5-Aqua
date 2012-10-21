@@ -77,7 +77,6 @@ sub raw_app {
             application => $self,
         );
 
-        local $@;
         if (my $response = eval { $c->$action($context, @args) }) {
             return $response;
         } else {
@@ -130,7 +129,6 @@ sub _wrap {
     my ($self, $class, $orig_app, $args) = @_;
     my $pkg = $class =~ /^\+(.+)/ ? $1 : "Plack::Middleware::$class";
 
-    local $@;
     my $app = eval {
         Aqua::Util->require($pkg, "wrap");
         AQUA_DEBUG && print STDERR "Enable Middleware <$pkg>\n";
