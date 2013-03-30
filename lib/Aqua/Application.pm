@@ -93,9 +93,9 @@ sub raw_app {
 }
 
 sub to_app {
-    my $self = shift;
+    my ($self, $mw_options) = @_;
     $self->load_controllers;
-    $self->wrap_default_middlewares($self->raw_app, {});
+    $self->wrap_default_middlewares($self->raw_app, $mw_options || {});
 }
 
 sub merge_middleware_options {
